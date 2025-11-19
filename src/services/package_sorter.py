@@ -6,8 +6,8 @@ class PackageSorterService:
     MAX_DIMENSION = 150
     MAX_MASS = 20
 
-    def __init__(self, db_session: Session):
-        self._db_session = db_session
+    def __init__(self):
+        pass
 
     @staticmethod
     def calculate_volume(width, height, length):
@@ -30,7 +30,7 @@ class PackageSorterService:
 
         return False
 
-    def sort(self, width, height, length, mass):
+    def sort(self, session: Session, width, height, length, mass):
         bulky = self._package_is_bulky(width, height, length)
         heavy = self._package_is_heavy(mass)
 
@@ -44,8 +44,8 @@ class PackageSorterService:
         new_package = Package(
              width=width, height=height, length=length, weight=mass, classification=classification)
 
-        self._db_session.add(new_package)
-        self._db_session.commit()
-        self._db_session.refresh(new_package)
+        session.add(new_package)
+        session.commit()
+        session.refresh(new_package)
 
         return classification

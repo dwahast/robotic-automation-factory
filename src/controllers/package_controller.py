@@ -8,17 +8,20 @@ from src.domain.package_request import PackageRequest
 
 router = APIRouter(prefix="/package", tags=["Package"])
 
+package_sorter_service = PackageSorterService()
 
-def get_package_sorter_service(session: Session = Depends(get_session)) -> PackageSorterService:
-    return PackageSorterService(db_session=session)
+def get_package_sorter_service():
+    return package_sorter_service
 
 
 @router.post("/sort")
 def sort_packages(
     request: PackageRequest,
     service: PackageSorterService = Depends(get_package_sorter_service),
+    session: Session = Depends(get_session),
 ):
     return service.sort(
+        session,
         request.width,
         request.height,
         request.length,
