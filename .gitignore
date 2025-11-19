@@ -1,3 +1,9 @@
+# Database
+*.db*
+
+# Pycharm
+.idea/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -5,6 +11,7 @@ __pycache__/
 .env
 .DS_Store
 *__pycache__*
+
 # C extensions
 *.so
 
