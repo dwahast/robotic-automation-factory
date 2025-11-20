@@ -9,7 +9,8 @@ class ReportService:
     def __init__(self):
         pass
 
-    def _get_df(self, filename: str):
+    @staticmethod
+    def get_df_from_file(filename: str):
         df = pd.read_csv(filename, on_bad_lines='skip')
         # Convert everything to numeric (integers), coercing errors to NaN
         df = df.apply(pd.to_numeric, errors='coerce')
@@ -23,27 +24,42 @@ class ReportService:
     @staticmethod
     def generate_reports(df, name=None, number_of_artifacts=None):
         data = [
-            {'description': f'Number of {name} packages', 'value': len(df)},
-            {'description': f'Percentage {name} of total', 'value': len(df) / number_of_artifacts * 100},
-            {'description': f'{name} Volume Mean', 'value': df['Volume'].mean()},
-            {'description': f'{name} Volume Min', 'value': df['Volume'].min()},
-            {'description': f'{name} Volume Max', 'value': df['Volume'].max()},
-            {'description': f'{name} Mass Mean', 'value': df['Mass'].mean()},
-            {'description': f'{name} Mass Min', 'value': df['Mass'].min()},
-            {'description': f'{name} Mass Max', 'value': df['Mass'].max()},
+            {'description': f'classification', 'value': name},
+            {'description': f'number_of_packages', 'value': len(df)},
+            {'description': f'percentage_of_total', 'value': len(df) / number_of_artifacts * 100},
+            {'description': f'volume_mean', 'value': df['Volume'].mean()},
+            {'description': f'volume_min', 'value': df['Volume'].min()},
+            {'description': f'volume_max', 'value': df['Volume'].max()},
+            {'description': f'mass_mean', 'value': df['Mass'].mean()},
+            {'description': f'mass_min', 'value': df['Mass'].min()},
+            {'description': f'mass_max', 'value': df['Mass'].max()},
         ]
 
         stats_df = pd.DataFrame(data)
-        file_name = f"package_report_{name}_{datetime.datetime.now()}.csv"
-        stats_df.to_csv(file_name, index=False)
+        file_name = f"package_report_{name}_{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.csv"
+        stats_df.to_csv(file_name, index=False, header=True)
         print(f"Report created: {file_name}")
-        return stats_df
+        return file_name
 
-    def process_report(self, package_service: PackageSorterService, filename: str):
-        df = self._get_df(filename)
-        df["Classification"] = df.apply(package_service.sort_by_row, axis=1)
-        df["Volume"] = df.apply(package_service.get_volume, axis=1)
-        total_artifact = len(df)
+    @staticmethod
+    def classifier(row: pd.Series, package_service: PackageSorterService):
+        classification = package_service.sort_by_row(row)
+        volume = package_service.get_volume(row)
+        return pd.Series({
+            "Classification": classification,
+            "Volume": volume
+        })
 
+    def process_report_from_file(self, package_service: PackageSorterService, filename: str):
+        df = ReportService.get_df_from_file(filename)
+
+        # 1. Classify Packages
+        df[["Classification", "Volume"]] = df.apply(
+            lambda row: ReportService.classifier(row, package_service), axis=1)
+
+        # 3. Generate Reports on Classification subsets
+        reports_created = []
         for cls, subset in df.groupby("Classification"):
-            self.generate_reports(subset, cls, total_artifact)
+            reports_created.append(self.generate_reports(subset, cls, len(df)))
+
+        return reports_created

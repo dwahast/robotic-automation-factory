@@ -1,7 +1,7 @@
 import uvicorn
 from fastapi import FastAPI
 
-from src.controllers.package_controller import router as package_router
+from src.routers.package_controller import router as package_router
 
 app = FastAPI(docs_url="/")
 app.include_router(package_router)
