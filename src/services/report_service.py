@@ -2,7 +2,8 @@ import datetime
 
 import pandas as pd
 
-from src.services.package_sorter import PackageSorterService
+from src.domain.Entities.package import Package
+from src.services.robotic_arm_service import RoboticArmService
 
 
 class ReportService:
@@ -42,20 +43,21 @@ class ReportService:
         return file_name
 
     @staticmethod
-    def classifier(row: pd.Series, package_service: PackageSorterService):
-        classification = package_service.sort_by_row(row)
-        volume = package_service.get_volume(row)
+    def classifier(row: pd.Series, robotic_arm: RoboticArmService):
+        package = Package.from_dict(row)
+        sorted_package = robotic_arm.sort(package)
+
         return pd.Series({
-            "Classification": classification,
-            "Volume": volume
+            "Classification": sorted_package.classification,
+            "Volume": sorted_package.volume
         })
 
-    def process_report_from_file(self, package_service: PackageSorterService, filename: str):
+    def process_report_from_file(self, robotic_arm: RoboticArmService, filename: str):
         df = ReportService.get_df_from_file(filename)
 
         # 1. Classify Packages
         df[["Classification", "Volume"]] = df.apply(
-            lambda row: ReportService.classifier(row, package_service), axis=1)
+            lambda row: ReportService.classifier(row, robotic_arm), axis=1)
 
         # 3. Generate Reports on Classification subsets
         reports_created = []
